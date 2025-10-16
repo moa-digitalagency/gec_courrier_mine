@@ -1,0 +1,787 @@
+{% extends "new_base.html" %}
+
+{% block title %}Détails Courrier {{ courrier.numero_accuse_reception }} - GEC{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="mb-6">
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-4">
+            <li>
+                <a href="{{ url_for('dashboard') }}" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-home"></i>
+                    <span class="sr-only">Accueil</span>
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{{ url_for('view_mail') }}" class="text-sm font-medium text-gray-500 hover:text-gray-700">
+                        Courriers
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-900">{{ courrier.numero_accuse_reception }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+</div>
+
+<!-- Page Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+        <i class="fas fa-mail-bulk mr-3 text-rdc-blue"></i>
+        Détails du Courrier
+    </h1>
+    <p class="mt-2 text-gray-600">Informations complètes du courrier {{ courrier.numero_accuse_reception }}</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Main Content -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Basic Information -->
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200 bg-rdc-blue">
+                <h2 class="text-xl font-semibold text-white flex items-center">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Informations Principales
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Receipt Number -->
+                    <div>
+                        <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-receipt mr-2 text-rdc-blue"></i>
+                            Numéro d'Accusé de Réception
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-rdc-blue text-white">
+                                {{ courrier.numero_accuse_reception }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Reference Number -->
+                    <div>
+                        <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-hashtag mr-2 text-rdc-blue"></i>
+                            Numéro de Référence
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            {% if courrier.numero_reference %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                    {{ courrier.numero_reference }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-500 italic">Non référencé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contact (Expediteur/Destinataire) -->
+                <div class="mt-6">
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user mr-2 text-rdc-green"></i>
+                        {{ courrier.get_label_contact() }}
+                    </div>
+                    <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+                        <p class="text-gray-900 font-medium">{{ courrier.get_contact_principal() if courrier.get_contact_principal() else 'Non spécifié' }}</p>
+                    </div>
+                </div>
+                
+                <!-- Type de Courrier Sortant (pour courriers sortants) -->
+                {% if courrier.type_courrier == 'SORTANT' and courrier.type_courrier_sortant %}
+                <div class="mt-6">
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tag mr-2 text-rdc-green"></i>
+                        Type de Courrier Sortant
+                    </div>
+                    <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-tag mr-2"></i>
+                            {{ courrier.type_courrier_sortant.nom }}
+                        </span>
+                        {% if courrier.type_courrier_sortant.description %}
+                        <p class="text-sm text-gray-600 mt-2">{{ courrier.type_courrier_sortant.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Responsable de structure en copie (pour courriers entrants) -->
+                {% if courrier.type_courrier == 'ENTRANT' %}
+                <div class="mt-6">
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user-tie mr-2 text-rdc-blue"></i>
+                        {{ get_titre_responsable() }} en copie
+                    </div>
+                    <div class="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        {% if courrier.secretaire_general_copie is not none %}
+                            {% if courrier.secretaire_general_copie %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-2"></i>Oui
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                    <i class="fas fa-times-circle mr-2"></i>Non
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-gray-500 italic">Information non disponible</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Subject -->
+                <div class="mt-6">
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-file-alt mr-2 text-rdc-yellow"></i>
+                        Objet de la Lettre
+                    </div>
+                    <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p class="text-gray-900 leading-relaxed">{{ courrier.objet }}</p>
+                    </div>
+                </div>
+                
+                <!-- Autres Informations (pour courriers sortants) -->
+                {% if courrier.type_courrier == 'SORTANT' and courrier.autres_informations %}
+                <div class="mt-6">
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-info-circle mr-2 text-purple-500"></i>
+                        Autres Informations
+                    </div>
+                    <div class="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                        <p class="text-gray-900 leading-relaxed">{{ courrier.autres_informations }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Metadata -->
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-clock mr-2 text-rdc-blue"></i>
+                    Informations de Traçabilité
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Date de Rédaction/Émission -->
+                    <div>
+                        <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-edit mr-2 text-purple-500"></i>
+                            {% if courrier.type_courrier == 'SORTANT' %}Date d'Émission{% else %}Date de Rédaction{% endif %}
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            {% if courrier.date_redaction %}
+                                <p class="text-gray-900 font-medium">
+                                    {{ format_date(courrier.date_redaction) }}
+                                </p>
+                                <p class="text-sm text-gray-500">
+                                    Date de la lettre
+                                </p>
+                            {% else %}
+                                <p class="text-gray-500 italic">
+                                    Non renseignée
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Registration Date -->
+                    <div>
+                        <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-plus mr-2 text-rdc-green"></i>
+                            Date d'Enregistrement
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <p class="text-gray-900 font-medium">
+                                {{ format_date(courrier.date_enregistrement, include_time=True) }}
+                            </p>
+                            <p class="text-sm text-gray-500">
+                                Heure d'enregistrement
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Registered By -->
+                    <div>
+                        <div class="flex items-center text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user-check mr-2 text-rdc-green"></i>
+                            Enregistré par
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg">
+                            <p class="text-gray-900 font-medium">
+                                {{ courrier.utilisateur_enregistrement.nom_complet }}
+                            </p>
+                            <p class="text-sm text-gray-500">
+                                ({{ courrier.utilisateur_enregistrement.username }})
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Section -->
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-flag mr-2 text-rdc-blue"></i>
+                    Statut du Courrier
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm font-medium text-gray-700">Statut actuel :</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ courrier.statut_color }}">
+                            {{ courrier.statut }}
+                        </span>
+                    </div>
+                    <button onclick="toggleStatusForm()" 
+                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-rdc-blue hover:bg-opacity-90 transition-colors">
+                        <i class="fas fa-edit mr-2"></i>
+                        Modifier
+                    </button>
+                </div>
+                
+                <!-- Status Change Form -->
+                <div id="statusForm" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+                    <form method="POST" action="{{ url_for('change_status', id=courrier.id) }}">
+                        <div class="flex items-center space-x-4">
+                            <select name="nouveau_statut" required
+                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue">
+                                {% for statut in statuts_disponibles %}
+                                <option value="{{ statut.nom }}" {% if statut.nom == courrier.statut %}selected{% endif %}>
+                                    {{ statut.nom }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" 
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-rdc-green hover:bg-opacity-90 transition-colors">
+                                <i class="fas fa-check mr-2"></i>
+                                Confirmer
+                            </button>
+                            <button type="button" onclick="toggleStatusForm()"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-times mr-2"></i>
+                                Annuler
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- File Attachment -->
+        {% if courrier.fichier_nom %}
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-paperclip mr-2 text-rdc-blue"></i>
+                    Pièce Jointe
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="bg-green-50 rounded-lg border border-green-200 p-4">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            {% if courrier.fichier_type and courrier.fichier_type.startswith('image/') %}
+                                <i class="fas fa-image text-3xl text-green-600"></i>
+                            {% elif courrier.fichier_type == 'application/pdf' %}
+                                <i class="fas fa-file-pdf text-3xl text-red-600"></i>
+                            {% else %}
+                                <i class="fas fa-file text-3xl text-gray-600"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-lg font-medium text-gray-900 break-all">{{ courrier.fichier_nom }}</p>
+                            <p class="text-sm text-gray-500 mb-3">{{ courrier.fichier_type or 'Type inconnu' }}</p>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <a href="{{ url_for('download_file', id=courrier.id) }}" 
+                                   class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-rdc-green hover:bg-opacity-90 transition-colors">
+                                    <i class="fas fa-download mr-2"></i>
+                                    Télécharger
+                                </a>
+                                <a href="{{ url_for('view_file', id=courrier.id) }}" 
+                                   target="_blank"
+                                   class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-rdc-blue hover:bg-opacity-90 transition-colors">
+                                    <i class="fas fa-eye mr-2"></i>
+                                    Voir le fichier
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Comments and Annotations Section -->
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-comments mr-2 text-rdc-blue"></i>
+                    Commentaires et Annotations
+                </h2>
+            </div>
+            
+            <!-- Add Comment Form -->
+            {% if current_user.can_access_courrier(courrier) %}
+            <div class="p-6 border-b border-gray-200 bg-blue-50">
+                <form method="POST" action="{{ url_for('add_comment', courrier_id=courrier.id) }}">
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-3">
+                                <label for="commentaire" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-comment mr-1 text-rdc-blue"></i>
+                                    Votre commentaire *
+                                </label>
+                                <textarea name="commentaire" id="commentaire" rows="3" required 
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rdc-blue focus:border-rdc-blue"
+                                          placeholder="Ajouter un commentaire ou une annotation..."></textarea>
+                            </div>
+                            <div>
+                                <label for="type_comment" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-tag mr-1 text-rdc-blue"></i>
+                                    Type
+                                </label>
+                                <select name="type_comment" id="type_comment" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rdc-blue focus:border-rdc-blue">
+                                    <option value="comment">Commentaire</option>
+                                    <option value="annotation">Annotation</option>
+                                    <option value="instruction">Instruction</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <button type="submit" 
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-rdc-blue hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>
+                                Ajouter le Commentaire
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+            <!-- Comments List -->
+            {% if comments %}
+            <div class="divide-y divide-gray-200">
+                {% for comment in comments %}
+                <div class="p-6 hover:bg-gray-50">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0">
+                            <div class="w-10 h-10 bg-rdc-blue rounded-full flex items-center justify-center">
+                                <span class="text-white font-semibold text-sm">{{ comment.user.nom_complet[:2].upper() }}</span>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-semibold text-gray-900">{{ comment.user.nom_complet }}</span>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
+                                        {% if comment.type_comment == 'comment' %}bg-blue-100 text-blue-800
+                                        {% elif comment.type_comment == 'annotation' %}bg-green-100 text-green-800
+                                        {% elif comment.type_comment == 'instruction' %}bg-red-100 text-red-800
+                                        {% endif %}">
+                                        {% if comment.type_comment == 'comment' %}
+                                            <i class="fas fa-comment mr-1"></i>Commentaire
+                                        {% elif comment.type_comment == 'annotation' %}
+                                            <i class="fas fa-sticky-note mr-1"></i>Annotation
+                                        {% elif comment.type_comment == 'instruction' %}
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>Instruction
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <span class="text-sm text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    {{ comment.date_creation.strftime('%d/%m/%Y à %H:%M') }}
+                                    {% if comment.date_modification %}
+                                        <span class="ml-2 text-xs text-gray-400">
+                                            (modifié le {{ comment.date_modification.strftime('%d/%m/%Y à %H:%M') }})
+                                        </span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="text-gray-700">{{ comment.commentaire }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-6 text-center text-gray-500">
+                <i class="fas fa-comment-slash text-4xl mb-4"></i>
+                <p>Aucun commentaire pour ce courrier.</p>
+                {% if current_user.can_access_courrier(courrier) %}
+                <p class="text-sm">Soyez le premier à ajouter un commentaire !</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Transmission History -->
+        {% if forwards %}
+        <div class="bg-white shadow-rdc rounded-xl mt-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-history mr-2 text-rdc-blue"></i>
+                    Historique des Transmissions
+                </h2>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for forward in forwards %}
+                <div class="p-6 hover:bg-gray-50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <i class="fas fa-share text-blue-500 mr-2"></i>
+                                <span class="font-medium text-gray-900">{{ forward.forwarded_by.nom_complet }}</span>
+                                <span class="mx-2 text-gray-400">→</span>
+                                <span class="font-medium text-gray-900">{{ forward.forwarded_to.nom_complet }}</span>
+                            </div>
+                            {% if forward.message %}
+                            <p class="text-gray-600 mb-2">{{ forward.message }}</p>
+                            {% endif %}
+                            
+                            <!-- File attachment for transmission -->
+                            {% if forward.attached_file %}
+                            <div class="mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <div class="flex items-center">
+                                    <i class="fas fa-paperclip text-blue-600 mr-2"></i>
+                                    <span class="text-sm font-medium text-blue-900">Fichier joint:</span>
+                                    <a href="{{ url_for('download_forward_attachment', forward_id=forward.id) }}" 
+                                       class="ml-2 text-blue-600 hover:text-blue-800 underline text-sm">
+                                        {{ forward.attached_file_original_name }}
+                                    </a>
+                                    {% if forward.attached_file_size %}
+                                    <span class="ml-2 text-xs text-gray-500">
+                                        ({{ "%.1f"|format(forward.attached_file_size / 1024 / 1024) }} MB)
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-clock mr-1"></i>
+                                <span>{{ forward.date_transmission.strftime('%d/%m/%Y à %H:%M') }}</span>
+                                {% if forward.lu %}
+                                    <span class="ml-4">
+                                        <i class="fas fa-check-circle text-green-500 mr-1"></i>
+                                        Lu le {{ forward.date_lecture.strftime('%d/%m/%Y à %H:%M') }}
+                                    </span>
+                                {% else %}
+                                    <span class="ml-4">
+                                        <i class="fas fa-circle text-orange-500 mr-1"></i>
+                                        Non lu
+                                    </span>
+                                {% endif %}
+                                {% if forward.email_sent %}
+                                    <span class="ml-4">
+                                        <i class="fas fa-envelope text-blue-500 mr-1"></i>
+                                        Email envoyé
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Actions Rapides - Style Dashboard -->
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                    <i class="fas fa-bolt mr-2 text-rdc-blue"></i>
+                    Actions Rapides
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    <a href="{{ url_for('export_pdf', id=courrier.id) }}" 
+                       class="flex items-center p-4 border-2 border-dashed border-rdc-red rounded-lg hover:bg-red-50 transition-colors group w-full">
+                        <i class="fas fa-file-pdf text-2xl text-rdc-red mr-3 group-hover:scale-110 transition-transform"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">Exporter PDF</p>
+                            <p class="text-sm text-gray-500">Générer le PDF du courrier</p>
+                        </div>
+                    </a>
+                    
+                    {% if current_user.can_edit_courrier(courrier) %}
+                    <a href="{{ url_for('edit_courrier', id=courrier.id) }}" 
+                       class="flex items-center p-4 border-2 border-dashed border-orange-500 rounded-lg hover:bg-orange-50 transition-colors group w-full">
+                        <i class="fas fa-edit text-2xl text-orange-500 mr-3 group-hover:scale-110 transition-transform"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">Modifier Courrier</p>
+                            <p class="text-sm text-gray-500">Éditer les informations</p>
+                        </div>
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.has_permission('delete_mail') or current_user.is_super_admin() %}
+                    <button onclick="confirmDeleteMail({{ courrier.id }}, '{{ courrier.numero_accuse_reception|e }}')" 
+                            class="flex items-center p-4 border-2 border-dashed border-red-500 rounded-lg hover:bg-red-50 transition-colors group w-full text-left">
+                        <i class="fas fa-trash text-2xl text-red-500 mr-3 group-hover:scale-110 transition-transform"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">Supprimer Courrier</p>
+                            <p class="text-sm text-gray-500">Déplacer vers la corbeille</p>
+                        </div>
+                    </button>
+                    {% endif %}
+                    
+                    <!-- Forward Mail (Available to all users) -->
+                    {% if users %}
+                    <div class="border-2 border-dashed border-rdc-green rounded-lg p-4 hover:bg-green-50 transition-colors">
+                        <div class="flex items-center mb-3">
+                            <i class="fas fa-share text-2xl text-rdc-green mr-3"></i>
+                            <div>
+                                <p class="font-medium text-gray-900">Transmettre le Courrier</p>
+                                <p class="text-sm text-gray-500">Envoyer à un utilisateur</p>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ url_for('forward_mail', courrier_id=courrier.id) }}" enctype="multipart/form-data" class="space-y-3">
+                            <div class="relative">
+                                <input type="text" 
+                                       id="userSearch" 
+                                       placeholder="Taper pour rechercher un utilisateur..."
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rdc-green focus:border-rdc-green text-sm"
+                                       autocomplete="off">
+                                <div id="userDropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto hidden">
+                                    {% for user in users %}
+                                        {% if user.id != current_user.id %}
+                                        <div class="user-option px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm" 
+                                             data-user-id="{{ user.id }}" 
+                                             data-user-name="{{ user.nom_complet }}">
+                                            <i class="fas fa-user mr-2 text-gray-400"></i>
+                                            {{ user.nom_complet }}
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <input type="hidden" name="user_id" id="selectedUserId" required>
+                            </div>
+                            <textarea name="message" rows="2" 
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rdc-green focus:border-rdc-green text-sm"
+                                      placeholder="Message d'accompagnement (optionnel)"></textarea>
+                            
+                            <!-- File attachment field -->
+                            <div class="relative">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-paperclip mr-1 text-gray-400"></i>
+                                    Pièce jointe (optionnel)
+                                </label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="file" 
+                                           name="attachment" 
+                                           id="forwardAttachment"
+                                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.tiff,.svg"
+                                           class="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-rdc-green file:text-white hover:file:bg-green-700 file:cursor-pointer">
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Formats acceptés : PDF, Word (DOC/DOCX), Images (JPG, PNG, GIF, TIFF, SVG) - Max 16MB
+                                </p>
+                            </div>
+                            
+                            <button type="submit" 
+                                    class="w-full inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-rdc-green hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Transmettre
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('register_mail') }}" 
+                       class="flex items-center p-4 border-2 border-dashed border-rdc-blue rounded-lg hover:bg-blue-50 transition-colors group w-full">
+                        <i class="fas fa-plus-circle text-2xl text-rdc-blue mr-3 group-hover:scale-110 transition-transform"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">Nouveau Courrier</p>
+                            <p class="text-sm text-gray-500">Enregistrer un courrier</p>
+                        </div>
+                    </a>
+                    
+                    <a href="{{ url_for('search') }}" 
+                       class="flex items-center p-4 border-2 border-dashed border-yellow-500 rounded-lg hover:bg-yellow-50 transition-colors group w-full">
+                        <i class="fas fa-search text-2xl text-yellow-500 mr-3 group-hover:scale-110 transition-transform"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">Recherche</p>
+                            <p class="text-sm text-gray-500">Recherche avancée</p>
+                        </div>
+                    </a>
+                    
+                    <a href="{{ url_for('view_mail') }}" 
+                       class="flex items-center p-4 border-2 border-dashed border-gray-400 rounded-lg hover:bg-gray-50 transition-colors group w-full">
+                        <i class="fas fa-list text-2xl text-gray-400 mr-3 group-hover:scale-110 transition-transform"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">Retour à la Liste</p>
+                            <p class="text-sm text-gray-500">Voir tous les courriers</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        
+        <!-- Statistics -->
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                    <i class="fas fa-chart-bar mr-2 text-rdc-blue"></i>
+                    Statistiques
+                </h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">Jours depuis l'enregistrement</span>
+                    <span class="font-semibold text-rdc-blue">
+                        {{ (moment().date() - courrier.date_enregistrement.date()).days if moment else 'N/A' }}
+                    </span>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">Pièce jointe</span>
+                    <span class="font-semibold {{ 'text-rdc-green' if courrier.fichier_nom else 'text-gray-400' }}">
+                        {{ 'Oui' if courrier.fichier_nom else 'Non' }}
+                    </span>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600">Référence externe</span>
+                    <span class="font-semibold {{ 'text-rdc-green' if courrier.numero_reference else 'text-gray-400' }}">
+                        {{ 'Oui' if courrier.numero_reference else 'Non' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Calculate days since registration
+document.addEventListener('DOMContentLoaded', function() {
+    const registrationDate = new Date('{{ courrier.date_enregistrement.isoformat() }}');
+    const today = new Date();
+    const diffTime = Math.abs(today - registrationDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Update the days display if element exists
+    const daysElement = document.querySelector('[data-days-since]');
+    if (daysElement) {
+        daysElement.textContent = diffDays;
+    }
+});
+
+// Toggle status form
+function toggleStatusForm() {
+    const form = document.getElementById('statusForm');
+    form.classList.toggle('hidden');
+}
+
+// Function to confirm deletion
+function confirmDeleteMail(id, numero) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer le courrier ${numero} ?\n\nCette action déplacera le courrier dans la corbeille.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/delete_courrier/${id}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// User search functionality for transmission
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('userSearch');
+    const dropdown = document.getElementById('userDropdown');
+    const hiddenInput = document.getElementById('selectedUserId');
+    const userOptions = document.querySelectorAll('.user-option');
+
+    if (!searchInput) return; // Exit if elements don't exist
+
+    // Show dropdown when clicking on input
+    searchInput.addEventListener('focus', function() {
+        dropdown.classList.remove('hidden');
+    });
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Filter users based on search input
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        let hasVisibleOptions = false;
+
+        userOptions.forEach(function(option) {
+            const userName = option.getAttribute('data-user-name').toLowerCase();
+            if (userName.includes(searchTerm)) {
+                option.style.display = 'block';
+                hasVisibleOptions = true;
+            } else {
+                option.style.display = 'none';
+            }
+        });
+
+        // Show dropdown if there are visible options and input is focused
+        if (hasVisibleOptions && searchTerm.length > 0) {
+            dropdown.classList.remove('hidden');
+        } else if (searchTerm.length === 0) {
+            dropdown.classList.remove('hidden');
+        } else {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Handle user selection
+    userOptions.forEach(function(option) {
+        option.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const userName = this.getAttribute('data-user-name');
+            
+            searchInput.value = userName;
+            hiddenInput.value = userId;
+            dropdown.classList.add('hidden');
+            
+            // Add visual feedback
+            searchInput.classList.add('bg-green-50', 'border-green-300');
+            setTimeout(() => {
+                searchInput.classList.remove('bg-green-50', 'border-green-300');
+            }, 2000);
+        });
+    });
+
+    // Clear selection when input is cleared
+    searchInput.addEventListener('input', function() {
+        if (this.value === '') {
+            hiddenInput.value = '';
+            searchInput.classList.remove('bg-green-50', 'border-green-300');
+        }
+    });
+});
+</script>
+{% endblock %}

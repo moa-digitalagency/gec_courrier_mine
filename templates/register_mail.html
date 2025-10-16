@@ -1,0 +1,758 @@
+{% extends "new_base.html" %}
+
+{% block title %}{{ t('register_mail') or 'Enregistrer Courrier' }} - GEC{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+        <i class="fas fa-plus-circle mr-3 text-rdc-blue"></i>
+        {{ t('register_new_mail') or 'Enregistrer un Nouveau Courrier' }}
+    </h1>
+    <p class="mt-2 text-gray-600">{{ t('enter_mail_info') or 'Saisissez les informations du courrier (entrant ou sortant)' }}</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Main Form -->
+    <div class="lg:col-span-2">
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-edit mr-2 text-rdc-blue"></i>
+                    {{ t('mail_information') or 'Informations du Courrier' }}
+                </h2>
+            </div>
+            <div class="p-6">
+                <form method="POST" enctype="multipart/form-data" class="space-y-6">
+                    <!-- Type de Courrier -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-exchange-alt mr-1 text-rdc-blue"></i>
+                            {{ t('mail_type') or 'Type de Courrier' }} <span class="text-red-500">*</span>
+                        </label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="relative flex items-center p-3 bg-white border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rdc-blue mail-type-option">
+                                <input type="radio" 
+                                       name="type_courrier" 
+                                       value="ENTRANT" 
+                                       checked
+                                       class="sr-only"
+                                       onchange="toggleContactField()">
+                                <div class="radio-visual w-4 h-4 rounded-full border-2 border-gray-300 mr-3 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-rdc-blue hidden"></div>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-inbox mr-2 text-blue-500"></i>
+                                    <span class="text-sm font-medium">{{ t('incoming') or 'Entrant' }}</span>
+                                </div>
+                            </label>
+                            
+                            <label class="relative flex items-center p-3 bg-white border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-rdc-blue mail-type-option">
+                                <input type="radio" 
+                                       name="type_courrier" 
+                                       value="SORTANT"
+                                       class="sr-only"
+                                       onchange="toggleContactField()">
+                                <div class="radio-visual w-4 h-4 rounded-full border-2 border-gray-300 mr-3 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-rdc-blue hidden"></div>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-paper-plane mr-2 text-green-500"></i>
+                                    <span class="text-sm font-medium">{{ t('outgoing') or 'Sortant' }}</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Type de Courrier Sortant (si courrier sortant sélectionné) -->
+                    <div id="type-courrier-sortant-section" style="display: none;">
+                        <label for="type_courrier_sortant_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-tags mr-1 text-rdc-blue"></i>
+                            {{ t('outgoing_mail_type') or 'Type de Courrier Sortant' }} <span class="text-red-500">*</span>
+                        </label>
+                        <select id="type_courrier_sortant_id" 
+                                name="type_courrier_sortant_id"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue">
+                            <option value="">{{ t('select_type') or '-- Sélectionner un type --' }}</option>
+                            {% for type in types_courrier_sortant %}
+                                <option value="{{ type.id }}">{{ type.nom }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">{{ t('select_specific_outgoing_type') or 'Sélectionnez le type spécifique de courrier sortant' }}</p>
+                    </div>
+                    
+                    <!-- Numéro d'accusé de réception manuel (si configuré) -->
+                    {% if parametres and parametres.mode_numero_accuse == 'manuel' %}
+                    <div>
+                        <label for="numero_accuse_manuel" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-receipt mr-1 text-rdc-blue"></i>
+                            {{ t('receipt_number') or "Numéro d'Accusé de Réception" }} <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" 
+                               id="numero_accuse_manuel" 
+                               name="numero_accuse_manuel" 
+                               required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue"
+                               placeholder="{{ t('enter_unique_number') or 'Entrez un numéro unique' }}">
+                        <p class="mt-1 text-xs text-gray-500">{{ t('number_must_be_unique') or 'Ce numéro doit être unique dans le système' }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Reference and Contact -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="numero_reference" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-hashtag mr-1 text-rdc-blue"></i>
+                                {{ t('reference_number') or 'Numéro de Référence' }}
+                            </label>
+                            <input type="text" 
+                                   id="numero_reference" 
+                                   name="numero_reference" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue"
+                                   placeholder="{{ t('optional_if_empty_unreferenced') or 'Optionnel - Si non renseigné: Non référencé' }}">
+                            <p class="mt-1 text-xs text-gray-500">{{ t('leave_empty_if_no_reference') or 'Laissez vide si aucun numéro de référence' }}</p>
+                        </div>
+                        
+                        <div id="contact-field">
+                            <label for="contact" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-user mr-1 text-rdc-blue"></i>
+                                <span id="contact-label">{{ t('sender') or 'Expéditeur' }}</span> <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" 
+                                   id="contact" 
+                                   name="expediteur" 
+                                   required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue"
+                                   placeholder="Nom de l'expéditeur">
+                            <!-- Hidden field for destinataire -->
+                            <input type="hidden" 
+                                   id="destinataire" 
+                                   name="destinataire" 
+                                   value="">
+                        </div>
+                    </div>
+                    
+                    <!-- Object -->
+                    <div>
+                        <label for="objet" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-file-alt mr-1 text-rdc-blue"></i>
+                            {{ t('subject_letter') or 'Objet de la Lettre' }} <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="objet" 
+                                  name="objet" 
+                                  rows="4" 
+                                  required 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue"
+                                  placeholder="Décrivez l'objet de la lettre"></textarea>
+                    </div>
+                    
+                    <!-- Date de rédaction/émission -->
+                    <div>
+                        <label for="date_redaction" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-edit mr-1 text-rdc-blue"></i>
+                            <span id="date-redaction-label">{{ t('letter_drafting_date') or 'Date de Rédaction de la Lettre' }}</span>
+                            <span id="date-emission-label" style="display: none;">{{ t('letter_emission_date') or "Date d'Émission de la Lettre" }} <span class="text-red-500">*</span></span>
+                        </label>
+                        <input type="date" 
+                               id="date_redaction" 
+                               name="date_redaction" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue">
+                        <p class="mt-1 text-sm text-gray-500">
+                            <span id="date-redaction-hint">Date à laquelle la lettre a été rédigée (optionnel)</span>
+                            <span id="date-emission-hint" style="display: none;">Date à laquelle la lettre a été émise (obligatoire)</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Autres Informations (pour courrier sortant seulement) -->
+                    <div id="autres-informations-section" style="display: none;">
+                        <label for="autres_informations" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-info-circle mr-1 text-rdc-blue"></i>
+                            Autres Informations
+                        </label>
+                        <textarea id="autres_informations" 
+                                  name="autres_informations" 
+                                  rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue"
+                                  placeholder="Informations supplémentaires concernant ce courrier sortant..."></textarea>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Informations complémentaires sur ce courrier sortant (optionnel)
+                        </p>
+                    </div>
+                    
+                    <!-- Responsable de structure en copie (pour courrier entrant seulement) -->
+                    <div id="sg-copie-section" style="display: none;">
+                        <label for="secretaire_general_copie" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user-tie mr-1 text-rdc-blue"></i>
+                            Le {{ get_titre_responsable() }} est en copie sur le courrier <span class="text-red-500">*</span>
+                        </label>
+                        <select id="secretaire_general_copie" 
+                                name="secretaire_general_copie"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="oui">Oui</option>
+                            <option value="non">Non</option>
+                        </select>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Indiquez si le {{ get_titre_responsable() }} est mentionné en copie sur ce courrier
+                        </p>
+                    </div>
+                    
+                    <!-- Status -->
+                    <div>
+                        <label for="statut" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-flag mr-1 text-rdc-blue"></i>
+                            Statut Initial <span class="text-red-500">*</span>
+                        </label>
+                        <select id="statut" 
+                                name="statut" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rdc-blue focus:border-rdc-blue">
+                            {% if statuts_disponibles %}
+                                {% for statut_obj in statuts_disponibles %}
+                                    <option value="{{ statut_obj.nom }}" {% if statut_obj.nom == 'RECU' %}selected{% endif %}>
+                                        {{ statut_obj.nom.replace('_', ' ').title() }}
+                                        {% if statut_obj.description %}
+                                            - {{ statut_obj.description }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="RECU" selected>Reçu</option>
+                                <option value="EN_COURS">En cours</option>
+                                <option value="TRAITE">Traité</option>
+                                <option value="URGENT">Urgent</option>
+                                <option value="ARCHIVE">Archivé</option>
+                            {% endif %}
+                        </select>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Choisissez le statut initial pour ce courrier
+                        </p>
+                    </div>
+                    
+                    <!-- File Upload Avancé -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-paperclip mr-1 text-rdc-blue"></i>
+                            Pièce Jointe <span class="text-red-500">*</span>
+                        </label>
+                        
+                        <!-- Zone de téléchargement -->
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-rdc-blue transition-colors cursor-pointer" id="file-upload-zone">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
+                            <p class="text-sm font-medium text-gray-700">Télécharger un fichier <span class="text-red-500">*</span></p>
+                            <p class="text-xs text-gray-500">PDF, JPG, PNG, TIFF</p>
+                            <p class="text-xs text-gray-400 mt-2">Cliquez ou glissez-déposez</p>
+                            <input id="fichier" 
+                                   name="fichier" 
+                                   type="file" 
+                                   class="hidden" 
+                                   required
+                                   accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif">
+                        </div>
+                        
+                        <!-- Zone de prévisualisation -->
+                        <div id="file-preview" class="mt-4 hidden">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="text-sm font-medium text-gray-900">Fichier sélectionné</h4>
+                                    <div class="flex items-center space-x-2">
+                                        <button type="button" id="crop-image-btn" class="px-3 py-1 text-xs bg-rdc-yellow text-white rounded-md hover:bg-opacity-90 hidden">
+                                            <i class="fas fa-crop-alt mr-1"></i>Rogner
+                                        </button>
+                                        <button type="button" id="remove-file" class="text-red-600 hover:text-red-800">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="preview-content" class="mb-3">
+                                    <!-- Le contenu de prévisualisation sera inséré ici -->
+                                </div>
+                                <div class="flex items-center text-xs text-gray-500">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    <span id="file-info"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-6">
+                        <button type="submit" 
+                                class="flex-1 flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-rdc-blue hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rdc-blue transition-colors">
+                            <i class="fas fa-save mr-2"></i>
+                            {{ t('register_mail_action') or 'Enregistrer le Courrier' }}
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" 
+                           class="flex justify-center items-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rdc-blue transition-colors">
+                            <i class="fas fa-times mr-2"></i>
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Auto Info -->
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle mr-2 text-rdc-blue"></i>
+                    Informations Automatiques
+                </h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-calendar mr-2 text-rdc-green"></i>
+                        Date d'enregistrement
+                    </div>
+                    <div class="text-sm text-gray-600 current-time"></div>
+                </div>
+                
+                <div>
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-user mr-2 text-rdc-green"></i>
+                        Enregistré par
+                    </div>
+                    <div class="text-sm text-gray-600">{{ current_user.nom_complet }}</div>
+                </div>
+                
+                <div>
+                    <div class="flex items-center text-sm font-medium text-gray-700 mb-1">
+                        <i class="fas fa-receipt mr-2 text-rdc-green"></i>
+                        N° d'accusé
+                    </div>
+                    <div class="text-sm text-gray-600">Généré automatiquement</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Help -->
+        <div class="bg-white shadow-rdc rounded-xl">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                    <i class="fas fa-question-circle mr-2 text-rdc-blue"></i>
+                    Guide d'Utilisation
+                </h3>
+            </div>
+            <div class="p-6">
+                <ul class="space-y-3 text-sm text-gray-600">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-rdc-green mr-2 mt-0.5 flex-shrink-0"></i>
+                        Les champs marqués d'un * sont obligatoires
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-rdc-green mr-2 mt-0.5 flex-shrink-0"></i>
+                        Le numéro d'accusé sera généré automatiquement
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-rdc-green mr-2 mt-0.5 flex-shrink-0"></i>
+                        Vous pouvez enregistrer sans pièce jointe
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-rdc-green mr-2 mt-0.5 flex-shrink-0"></i>
+                        Taille maximum: 16MB par fichier
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Modal de Rognage -->
+<div id="crop-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl max-w-4xl w-full">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        <i class="fas fa-crop-alt mr-2 text-rdc-yellow"></i>
+                        Rogner l'image
+                    </h3>
+                    <button type="button" id="close-crop" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="text-center">
+                    <div id="crop-container" class="max-w-2xl mx-auto mb-4">
+                        <img id="crop-image" class="max-w-full" style="display: none;">
+                    </div>
+                    <div class="space-x-4">
+                        <button type="button" id="apply-crop" class="px-4 py-2 bg-rdc-green text-white rounded-md hover:bg-opacity-90">
+                            <i class="fas fa-crop mr-2"></i>Appliquer
+                        </button>
+                        <button type="button" id="cancel-crop" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-opacity-90">
+                            <i class="fas fa-times mr-2"></i>Annuler
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Cropperjs CSS (local) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/cropperjs/cropper.min.css') }}">
+<!-- Cropperjs JS (local) -->
+<script src="{{ url_for('static', filename='vendor/cropperjs/cropper.min.js') }}"></script>
+
+<script>
+// Variables globales
+let cropper = null;
+let currentFile = null;
+
+// Gestion du champ Secrétaire Général en copie
+function toggleSGCopieField() {
+    const typeCourrier = document.getElementById('type_courrier').value;
+    const sgSection = document.getElementById('sg-copie-section');
+    const sgSelect = document.getElementById('secretaire_general_copie');
+    
+    if (typeCourrier === 'ENTRANT') {
+        sgSection.style.display = 'block';
+        sgSelect.setAttribute('required', 'required');
+    } else {
+        sgSection.style.display = 'none';
+        sgSelect.removeAttribute('required');
+        sgSelect.value = '';  // Réinitialiser la valeur
+    }
+}
+
+// Système de fichiers avancé
+class AdvancedFileHandler {
+    constructor() {
+        this.initializeEventListeners();
+    }
+
+    initializeEventListeners() {
+        // Zone d'upload de fichier
+        document.getElementById('file-upload-zone').addEventListener('click', () => {
+            document.getElementById('fichier').click();
+        });
+
+        // Gestion du fichier sélectionné
+        document.getElementById('fichier').addEventListener('change', (e) => {
+            this.handleFileSelection(e);
+        });
+
+        // Bouton rogner (dans la zone de prévisualisation)
+        document.getElementById('crop-image-btn').addEventListener('click', () => {
+            if (currentFile && currentFile.type.startsWith('image/')) {
+                this.openCropModal();
+            }
+        });
+
+        // Bouton supprimer
+        document.getElementById('remove-file').addEventListener('click', () => {
+            this.removeFile();
+        });
+
+        // Modal de rognage
+        this.initializeCropModal();
+    }
+
+    handleFileSelection(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Vérification de taille
+        if (file.size > 16 * 1024 * 1024) {
+            alert('Erreur: Le fichier est trop volumineux (max 16MB)');
+            e.target.value = '';
+            return;
+        }
+
+        // Vérification du type
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/tiff'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Erreur: Type de fichier non autorisé');
+            e.target.value = '';
+            return;
+        }
+
+        currentFile = file;
+        this.showFilePreview(file);
+    }
+
+    showFilePreview(file) {
+        const preview = document.getElementById('file-preview');
+        const previewContent = document.getElementById('preview-content');
+        const fileInfo = document.getElementById('file-info');
+        const cropBtn = document.getElementById('crop-image-btn');
+        
+        // Mise à jour des informations
+        fileInfo.textContent = `${file.name} - ${this.formatFileSize(file.size)}`;
+        
+        // Prévisualisation selon le type
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewContent.innerHTML = `
+                    <img src="${e.target.result}" alt="Prévisualisation" class="max-w-full h-32 object-cover rounded-lg mx-auto">
+                `;
+            };
+            reader.readAsDataURL(file);
+            
+            // Afficher le bouton de rognage pour les images
+            cropBtn.classList.remove('hidden');
+        } else if (file.type === 'application/pdf') {
+            previewContent.innerHTML = `
+                <div class="flex items-center justify-center h-32 bg-red-50 rounded-lg">
+                    <i class="fas fa-file-pdf text-4xl text-red-500"></i>
+                </div>
+            `;
+            
+            // Masquer le bouton de rognage pour les PDF
+            cropBtn.classList.add('hidden');
+        }
+        
+        preview.classList.remove('hidden');
+    }
+
+    removeFile() {
+        document.getElementById('fichier').value = '';
+        document.getElementById('file-preview').classList.add('hidden');
+        document.getElementById('crop-image-btn').classList.add('hidden');
+        currentFile = null;
+    }
+
+
+
+    // Crop Modal
+    initializeCropModal() {
+        const modal = document.getElementById('crop-modal');
+        const applyBtn = document.getElementById('apply-crop');
+        const cancelBtn = document.getElementById('cancel-crop');
+        const closeBtn = document.getElementById('close-crop');
+
+        applyBtn.addEventListener('click', () => {
+            if (cropper) {
+                cropper.getCroppedCanvas().toBlob((blob) => {
+                    const file = new File([blob], currentFile.name, { type: currentFile.type });
+                    this.setFileFromBlob(file);
+                    this.closeCropModal();
+                }, currentFile.type);
+            }
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            this.closeCropModal();
+        });
+
+        closeBtn.addEventListener('click', () => {
+            this.closeCropModal();
+        });
+    }
+
+    openCropModal() {
+        if (!currentFile || !currentFile.type.startsWith('image/')) return;
+        
+        const modal = document.getElementById('crop-modal');
+        const img = document.getElementById('crop-image');
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            img.src = e.target.result;
+            img.style.display = 'block';
+            
+            // Initialiser Cropper
+            cropper = new Cropper(img, {
+                aspectRatio: NaN, // Libre
+                viewMode: 2,
+                dragMode: 'move',
+                autoCropArea: 1,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+            });
+        };
+        reader.readAsDataURL(currentFile);
+        
+        modal.classList.remove('hidden');
+    }
+
+    closeCropModal() {
+        const modal = document.getElementById('crop-modal');
+        modal.classList.add('hidden');
+        
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        
+        document.getElementById('crop-image').style.display = 'none';
+    }
+
+    setFileFromBlob(file) {
+        // Créer un DataTransfer pour simuler un fichier sélectionné
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('fichier').files = dt.files;
+        
+        currentFile = file;
+        this.showFilePreview(file);
+        
+        // Afficher le bouton de rognage pour les images
+        const cropBtn = document.getElementById('crop-image-btn');
+        if (file.type.startsWith('image/')) {
+            cropBtn.classList.remove('hidden');
+        }
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+}
+
+// Fonctions existantes (maintenues pour compatibilité)
+function updateCurrentTime() {
+    const now = new Date();
+    const timeString = now.toLocaleDateString('fr-FR') + ' à ' + now.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    document.querySelector('.current-time').textContent = timeString;
+}
+
+function initializeRadioButtons() {
+    const radioOptions = document.querySelectorAll('.mail-type-option');
+    
+    radioOptions.forEach(option => {
+        const radio = option.querySelector('input[type="radio"]');
+        const visual = option.querySelector('.radio-visual div');
+        
+        if (radio.checked) {
+            visual.classList.remove('hidden');
+            option.classList.add('border-rdc-blue', 'bg-blue-50');
+        }
+        
+        option.addEventListener('click', function() {
+            radioOptions.forEach(opt => {
+                const vis = opt.querySelector('.radio-visual div');
+                vis.classList.add('hidden');
+                opt.classList.remove('border-rdc-blue', 'bg-blue-50');
+            });
+            
+            radio.checked = true;
+            visual.classList.remove('hidden');
+            option.classList.add('border-rdc-blue', 'bg-blue-50');
+            
+            toggleContactField();
+        });
+    });
+}
+
+function toggleContactField() {
+    const typeSelected = document.querySelector('input[name="type_courrier"]:checked').value;
+    const contactLabel = document.getElementById('contact-label');
+    const contactInput = document.getElementById('contact');
+    const destinataireField = document.querySelector('input[name="destinataire"]');
+    
+    // Gestion du champ SG en copie
+    const sgSection = document.getElementById('sg-copie-section');
+    const sgSelect = document.getElementById('secretaire_general_copie');
+    
+    // Gestion du champ type de courrier sortant
+    const typeCourrierSortantSection = document.getElementById('type-courrier-sortant-section');
+    const typeCourrierSortantSelect = document.getElementById('type_courrier_sortant_id');
+    
+    // Gestion du champ autres informations
+    const autresInfoSection = document.getElementById('autres-informations-section');
+    
+    // Gestion des labels et hints de date
+    const dateRedactionLabel = document.getElementById('date-redaction-label');
+    const dateEmissionLabel = document.getElementById('date-emission-label');
+    const dateRedactionHint = document.getElementById('date-redaction-hint');
+    const dateEmissionHint = document.getElementById('date-emission-hint');
+    const dateRedactionInput = document.getElementById('date_redaction');
+    
+    if (typeSelected === 'ENTRANT') {
+        contactLabel.textContent = 'Expéditeur';
+        contactInput.placeholder = 'Nom de l\'expéditeur';
+        contactInput.name = 'expediteur';
+        destinataireField.value = '';
+        
+        // Afficher le champ SG en copie pour les courriers entrants
+        sgSection.style.display = 'block';
+        sgSelect.setAttribute('required', 'required');
+        
+        // Cacher le champ type de courrier sortant
+        if (typeCourrierSortantSection) {
+            typeCourrierSortantSection.style.display = 'none';
+            typeCourrierSortantSelect.removeAttribute('required');
+            typeCourrierSortantSelect.value = '';
+        }
+        
+        // Cacher le champ autres informations
+        if (autresInfoSection) {
+            autresInfoSection.style.display = 'none';
+        }
+        
+        // Afficher le label "Date de Rédaction" (optionnel)
+        if (dateRedactionLabel) dateRedactionLabel.style.display = 'inline';
+        if (dateEmissionLabel) dateEmissionLabel.style.display = 'none';
+        if (dateRedactionHint) dateRedactionHint.style.display = 'inline';
+        if (dateEmissionHint) dateEmissionHint.style.display = 'none';
+        dateRedactionInput.removeAttribute('required');
+    } else {
+        contactLabel.textContent = 'Destinataire';
+        contactInput.placeholder = 'Nom du destinataire';
+        contactInput.name = 'destinataire';
+        
+        // Cacher le champ SG en copie pour les courriers sortants
+        sgSection.style.display = 'none';
+        sgSelect.removeAttribute('required');
+        sgSelect.value = '';
+        
+        // Afficher le champ type de courrier sortant
+        if (typeCourrierSortantSection) {
+            typeCourrierSortantSection.style.display = 'block';
+            typeCourrierSortantSelect.setAttribute('required', 'required');
+        }
+        
+        // Afficher le champ autres informations
+        if (autresInfoSection) {
+            autresInfoSection.style.display = 'block';
+        }
+        
+        // Afficher le label "Date d'Émission" (obligatoire)
+        if (dateRedactionLabel) dateRedactionLabel.style.display = 'none';
+        if (dateEmissionLabel) dateEmissionLabel.style.display = 'inline';
+        if (dateRedactionHint) dateRedactionHint.style.display = 'none';
+        if (dateEmissionHint) dateEmissionHint.style.display = 'inline';
+        dateRedactionInput.setAttribute('required', 'required');
+    }
+}
+
+
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser le gestionnaire de fichiers avancé
+    new AdvancedFileHandler();
+    
+    // Initialiser les autres fonctions
+    initializeRadioButtons();
+    toggleContactField();
+    setInterval(updateCurrentTime, 1000);
+    updateCurrentTime();
+});
+</script>
+{% endblock %}
